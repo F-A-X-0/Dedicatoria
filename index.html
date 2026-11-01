@@ -133,6 +133,56 @@
             font: inherit;
             padding: .5rem 1rem;
         }
+
+        /* ====== ADAPTACIÓN PARA CELULARES ====== */
+
+        #go {
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        #go p {
+            max-width: 500px;
+            line-height: 1.6;
+            font-size: clamp(14px, 4vw, 19px);
+        }
+
+        #hud {
+            box-sizing: border-box;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        #out {
+            box-sizing: border-box;
+            padding: 15px;
+        }
+
+        #out textarea {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 600px) {
+            #code {
+                font-weight: 600;
+            }
+
+            .l {
+                line-height: 1.7;
+            }
+
+            #cur {
+                box-shadow: 0 0 10px #f22;
+            }
+
+            #orb {
+                width: 2em;
+                height: 2em;
+            }
+        }
+
     </style>
 </head>
 
@@ -148,7 +198,7 @@
     <div id="fade"></div>
 
     <div id="go">
-      <p>Hecho por Faxo con dedicatoria especial para una mujer especial <3<br>
+      <p>Hecho por Faxo con dedicatoria especial para una mujer especial <3 <br>
         Favor de subir el volumen y aceptar el permiso si es que lo llegase a pedir</p>
 
         <b>▶ toca para empezar</b>
@@ -281,8 +331,13 @@
                 mc[PAGE[i]] = Math.max(mc[PAGE[i]] || 0, l[1].length);
             });
 
-            const cw = Math.min(innerWidth, innerHeight * .6) / 20 * .6;
-            const zw = k => Math.max(.3, Math.min(1.1, .8 * innerWidth / ((mc[k] + 2) * cw)));
+            const movil = innerWidth <= 600;
+            
+            const cw = Math.min(innerWidth, innerHeight * .6) / (movil ? 15 : 20) * .6;
+            const zw = k => Math.max(
+                .3,
+                Math.min(1.1, .8 * innerWidth / ((mc[k] + 2) * cw))
+            );
 
             // zoom que deja ver la línea más larga
 
@@ -371,7 +426,14 @@
         }
 
         const fit = () => {
-            code.style.fontSize = Math.round(Math.min(innerWidth, innerHeight * .6) / 20) + 'px';
+            const movil = innerWidth <= 600;
+
+            const divisor = movil ? 15 : 20;
+
+            code.style.fontSize = Math.round(
+                Math.min(innerWidth, innerHeight * .6) / divisor
+            ) + 'px';
+
             plan();
         };
 
