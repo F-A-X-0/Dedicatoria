@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Letra en código</title>
+
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #050505;
+            overflow: hidden;
+            font-family: ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+        }
+
+        #glow {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 55%, #ff7a1a66, transparent 60%);
+            opacity: 0;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        #cam {
+            position: absolute;
+            left: 50%;
+            top: 46%;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        #code {
+            position: relative;
+            white-space: pre;
+            color: #e8e8e8;
+            font-weight: 600;
+        }
+
+        .l {
+            min-height: 1.55em;
+            line-height: 1.55;
+        }
+
+        .c, .p { color: #7fb2ff; }
+        .s, .n, .f { color: #ffb454; }
+        .k, .o { color: #ff5a5a; }
+
+        #cur {
+            display: inline-block;
+            width: .6em;
+            height: 1.1em;
+            background: #ff2a2a;
+            vertical-align: -.15em;
+            margin-left: 1px;
+            box-shadow: 0 0 14px #f22;
+        }
+
+        #orb {
+            position: absolute;
+            width: 3em;
+            height: 3em;
+            border-radius: 50%;
+            background: radial-gradient(#ffd27a, #ff8a1f 45%, transparent 70%);
+            filter: blur(6px);
+            transform: translate(-130%, -50%);
+            opacity: 0;
+        }
+
+        #fade {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #go {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            background: #000;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            align-content: center;
+            gap: 1.4rem;
+        }
+
+        #cal {
+            font-size: .9rem;
+            opacity: .75;
+        }
+
+        #hud {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            padding: .8rem;
+            background: #000c;
+            color: #ffb454;
+            font-size: .95rem;
+            display: none;
+            z-index: 5;
+        }
+
+        #out {
+            position: fixed;
+            inset: 0;
+            display: none;
+            place-items: center;
+            align-content: center;
+            gap: .8rem;
+            background: #000e;
+            color: #fff;
+            padding: 1rem;
+            z-index: 6;
+            text-align: center;
+        }
+
+        #out textarea {
+            width: min(92vw, 700px);
+            background: #111;
+            color: #ffb454;
+            border: 1px solid #444;
+            font: inherit;
+        }
+
+        button {
+            font: inherit;
+            padding: .5rem 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="glow"></div>
+
+    <div id="cam">
+        <div id="code">
+            <i id="orb"></i>
+        </div>
+    </div>
+
+    <div id="fade"></div>
+
+    <div id="go">
+      <p>Hecho por Faxo con dedicatoria especial para una mujer especial osea tu <3 <br>
+        Favor de subir el volumen y aceptar el permiso si es que lo llegase a pedir</p>
+
+        <b>▶ toca para empezar</b>
+        <!-- Esto es para calibrar pero ya esta calibrado
+        <u id="cal">◉ calibrar tiempos (toca al ritmo de la voz)</u>
+        -->
+    </div>
+
+    <div id="hud"></div>
+
+    <div id="out">
+      <!-- No mover
+      <p>Listo. Copia esta lista y pégala en <b>TIEMPOS = [ ]</b> de web/index.html y de python/main.py.</p>
+      -->
+
+        <textarea id="ta" readonly rows="5"></textarea>
+      <!-- No mover
+        <div>
+            <button id="cp">Copiar</button>
+            <button id="ver">Ver resultado</button>
+        </div>
+        -->
+    </div>
+
+    <audio id="au" src="cancion.mp3" preload="auto"></audio>
+
+    <script>
+        // ====== CONFIGURA AQUÍ ======
+
+        const AUDIO_START = 15.59;  // segundo de la canción donde empieza la letra (= t 0 de la animación)
+        const BPM = 107;            // pulso de respaldo (si abres el archivo con doble clic)
+        const END = 103.41;         // segundo (relativo) donde se desvanece a negro
+        const CPS = 16;             // caracteres por segundo al "teclear" (máximo)
+        const LAT = 0.25;            // retraso de tus toques al calibrar (s)
+        const TIEMPOS = [];          // opcional: tiempos calibrados (pégalos aquí). Vacío = usa los de SCRIPT
+
+        // [segundo relativo en que empieza la línea, texto, 1 = pantalla nueva]
+
+        // Letra de la canción en su tiempo
+        const SCRIPT = [
+            [0.19, 'def intro = [', 1],
+            [1.09, '  "Feel like sun",'],
+            [3.31, '  "in my skin",'],
+            [5.65, '  "This is love",'],
+            [7.86, '  "I know it is",'],
+            [9.74, '  "I know it sounds super cliché",'],
+            [12.03, '  "but you make me feel some typa way",'],
+            [13.86, '  "This is falling in love",'],
+            [16.21, '  "falling in love",'],
+            [18.41, ']'],
+
+            [18.11, 'def estrofa_1 = [', 1],
+            [19.01, '  "¿Acaso no te has dado cuenta",'],
+            [20.84, '  "de lo bien que me complementas?",'],
+            [22.70, '  "Si quieres te invito un helado",'],
+            [23.98, '  "y te explico lo chido que haces que me sienta.",'],
+            [26.07, '  "Contigo estoy bien sin avión",'],
+            [28.19, '  "me haces perder la razón.",'],
+            [30.39, ']'],
+
+            [29.13, 'def estrofa_2 = [', 1],
+            [30.03, '  "Estoy todo el día pensándote con mariposas en el corazón",'],
+            [33.41, '  "y tú...",'],
+            [35.24, '  "me pones todo de cabeza.",'],
+            [37.21, '  "Tú...",'],
+            [39.06, '  "eras esa última pieza.",'],
+            [40.90, '  "Tú...",'],
+            [42.70, '  "eres tan diferente",'],
+            [44.43, '  "y no hay nadie que me vuele así la mente",'],
+            [46.63, '  "como lo haces tu....",'],
+            [48.63, ']'],
+
+            [51.35, 'def coro = [', 1],
+            [52.25, '  "Feel like sun",'],
+            [54.27, '  "oh my skin",'],
+            [56.39, '  "this is love",'],
+            [58.46, '  "I know it is",'],
+            [60.27, '  "I know it sounds super cliché",'],
+            [62.50, '  "but you make me feel some typa way",'],
+            [64.26, '  "This is falling",'],
+            [66.42, '  "falling in love",'],
+            [68.62, ']'],
+
+            [68.80, 'def outro = [', 1],
+            [69.70, '  "I know it sounds super cliché",'],
+            [71.55, '  "but you me feel some typa way",'],
+            [73.18, '  "This is falling",'],
+            [75.26, '  "falling in love...",'],
+            [82.02, '  "This is falling",'],
+            [84.21, '  "falling in love…",'],
+            [90.86, '  "This is falling",'],
+            [93.16, '  "falling in love...",'],
+            [95.36, ']'],
+            [95.39, ''],
+            
+            [96.56, 'def creador = [', 1],
+            [96.60, 'Hecho por Faxo para Yatziri'],
+            [96.67, 'De tu programador favorito'],
+            [95.73, ']'],
+            [95.79, ''],
+
+            [96.85, 'love.start()']
+        ];
+
+        // Los planos de cámara se calculan solos a partir de las pantallas nuevas (las líneas con 1).
+        // ============================
+
+        const $ = id => document.getElementById(id);
+
+        const PAGE = (() => {
+            let g = -1;
+            return SCRIPT.map(l => l[2] ? ++g : g);
+        })();
+
+        TIEMPOS.forEach((t, i) => {
+            if (SCRIPT[i]) SCRIPT[i][0] = t;
+        });
+
+        const ORIG = SCRIPT.map(l => l[0]);
+        let FIN, SHOTS;
+
+        function plan() {
+            FIN = Math.max(END, SCRIPT[SCRIPT.length - 1][0] + 2);
+
+            const st = SCRIPT.filter(l => l[2]).map(l => l[0]);
+            const o = [];
+            const mc = [];
+
+            SCRIPT.forEach((l, i) => {
+                mc[PAGE[i]] = Math.max(mc[PAGE[i]] || 0, l[1].length);
+            });
+
+            const cw = Math.min(innerWidth, innerHeight * .6) / 20 * .6;
+            const zw = k => Math.max(.3, Math.min(1.1, .8 * innerWidth / ((mc[k] + 2) * cw)));
+
+            // zoom que deja ver la línea más larga
+
+            st.forEach((a, k) => {
+                const b = k < st.length - 1 ? st[k + 1] : FIN;
+                const Z = zw(k);
+
+                if (k == st.length - 1) {
+                    o.push(
+                        [a, 2.6, 0, 0],
+                        [Math.max(a + 1, FIN - 6.5), 2.6, 0, 0],
+                        [Math.max(a + 2, FIN - 3.5), Z, 38, -9],
+                        [FIN, Math.min(1, Z), 0, 0]
+                    );
+                } else {
+                    o.push(
+                        [a, 2.6, 0, 0],
+                        [Math.max(a + 1, b - 6), 2.6, 0, 0],
+                        [Math.max(a + 2, b - 3.2), Z, 38, -9],
+                        [Math.max(a + 3, b - .6), Z, 38, -9]
+                    );
+                }
+            });
+
+            SHOTS = o;
+        }
+
+        plan();
+
+        const au = $('au');
+        const cam = $('cam');
+        const code = $('code');
+        const orb = $('orb');
+        const glow = $('glow');
+        const fade = $('fade');
+        const go = $('go');
+
+        const cur = document.createElement('span');
+        cur.id = 'cur';
+
+        const els = SCRIPT.map(() => {
+            const d = document.createElement('div');
+            d.className = 'l';
+            d.dataset.n = -1;
+            code.appendChild(d);
+            return d;
+        });
+
+        const RX = /(\/\/.*)|("(?:[^"\\]|\\.)*"?)|\b(if|else|while|for|def|let|return|new|function|true|false)\b|(===|==|!=|=>|&&|\|\||!)|\b(\d+)\b|([A-Za-z_]\w*)(?=\()|(?<=\.)([A-Za-z_]\w*)/g;
+
+        const CL = [, 'c', 's', 'k', 'o', 'n', 'f', 'p'];
+
+        const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+        function hl(t) {
+            let o = '', i = 0, m;
+            RX.lastIndex = 0;
+
+            while ((m = RX.exec(t))) {
+                o += esc(t.slice(i, m.index));
+                const k = m.findIndex((x, j) => j && x !== undefined);
+
+                o += `<span class="${CL[k]}">${esc(m[0])}</span>`;
+                i = RX.lastIndex;
+            }
+
+            return o + esc(t.slice(i));
+        }
+
+        const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+        const ez = x => x * x * (3 - 2 * x);
+
+        function shot(T) {
+            let a = SHOTS[0], b = a;
+
+            SHOTS.forEach((s, i) => {
+                if (T >= s[0]) {
+                    a = s;
+                    b = SHOTS[i + 1] || s;
+                }
+            });
+
+            const k = a === b ? 0 : ez(clamp((T - a[0]) / (b[0] - a[0])));
+
+            return [1, 2, 3].map(j => a[j] + (b[j] - a[j]) * k);
+        }
+
+        const fit = () => {
+            code.style.fontSize = Math.round(Math.min(innerWidth, innerHeight * .6) / 20) + 'px';
+            plan();
+        };
+
+        fit();
+        onresize = fit;
+
+        let an = null, buf, tried = false, cx = null, cy = 0, raf;
+
+        function setupAudio() {
+            // el análisis de graves no funciona con file:// (usa servidor local para activarlo)
+
+            if (tried || location.protocol === 'file:') return;
+            tried = true;
+
+            try {
+                const ac = new AudioContext();
+                const src = ac.createMediaElementSource(au);
+
+                an = ac.createAnalyser();
+                an.fftSize = 256;
+
+                buf = new Uint8Array(an.frequencyBinCount);
+                src.connect(an);
+                an.connect(ac.destination);
+            } catch (e) {
+                an = null;
+            }
+        }
+
+        const bass = T => {
+            if (an) {
+                an.getByteFrequencyData(buf);
+
+                let a = 0;
+                for (let i = 1; i < 8; i++) a += buf[i];
+
+                return Math.pow(a / 7 / 255, 2);
+            }
+
+            return Math.pow(.5 + .5 * Math.cos(2 * Math.PI * T * BPM / 60), 6);
+        };
+
+        function frame() {
+            raf = requestAnimationFrame(frame);
+
+            const T = au.currentTime - AUDIO_START;
+            let cl = -1, n = 0, typing = false;
+
+            SCRIPT.forEach(([t, s], i) => {
+                const e = els[i];
+
+                if (T < t) {
+                    if (e.dataset.n != -1) {
+                        e.textContent = '';
+                        e.dataset.n = -1;
+                    }
+                    return;
+                }
+
+                const nx = SCRIPT[i + 1];
+                const du = Math.min(nx ? (nx[0] - t) * .85 : 99, s.length / CPS);
+
+                n = (nx && T >= nx[0]) || du <= 0
+                    ? s.length
+                    : Math.min(s.length, Math.floor(s.length * (T - t) / du));
+
+                if (+e.dataset.n !== n) {
+                    e.dataset.n = n;
+                    e.innerHTML = hl(s.slice(0, n));
+                }
+
+                e.style.opacity = nx && T >= nx[0] ? .45 : 1;
+                cl = i;
+                typing = n < s.length;
+            });
+
+            const cp = cl >= 0 ? PAGE[cl] : 0;
+            els.forEach((e, i) => e.style.display = PAGE[i] === cp ? '' : 'none');
+
+            if (cl >= 0) els[cl].appendChild(cur);
+
+            cur.style.opacity = typing || Math.floor(T * 2) % 2 == 0 ? 1 : 0;
+
+            const [z, rx, rz] = shot(T);
+            const w = clamp((2.2 - z) / 1.1);
+            const p = bass(T);
+
+            const px = cur.offsetLeft + cur.offsetWidth / 2;
+            const py = cur.offsetTop + cur.offsetHeight / 2;
+
+            const tx = px * (1 - w) + code.offsetWidth / 2 * w;
+            const ty = py * (1 - w) + code.offsetHeight / 2 * w;
+
+            if (cx === null) {
+                cx = tx;
+                cy = ty;
+            }
+
+            cx += (tx - cx) * .15;
+            cy += (ty - cy) * .15;
+
+            cam.style.transform = `perspective(1200px) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${z * (1 + p * .03)}) translate(${-cx}px,${-cy}px)`;
+
+            orb.style.left = px + 'px';
+            orb.style.top = py + 'px';
+            orb.style.opacity = w * (.5 + .5 * p);
+
+            glow.style.opacity = .2 + .5 * p;
+            fade.style.opacity = clamp((T - FIN) / 2);
+        }
+
+        // ---- calibración: toca (ESPACIO o pantalla) cuando EMPIECE cada línea de letra
+
+        let cal = false, k = 0, LY = [], lastT = 0;
+        const hud = $('hud');
+        const out = $('out');
+        const ta = $('ta');
+
+        function derive() {
+            const pg = [];
+
+            SCRIPT.forEach((l, i) => {
+                if (l[2]) pg.push([]);
+                pg[pg.length - 1].push(i);
+            });
+
+            pg.forEach(p => {
+                const ly = p.filter(i => SCRIPT[i][1].startsWith('  "'));
+                if (!ly.length) return;
+
+                const z = ly[ly.length - 1];
+                const f = SCRIPT[ly[0]][0];
+                const e = SCRIPT[z][0];
+
+                SCRIPT[p[0]][0] = f - .9;
+                p.filter(i => i > z).forEach((i, q) => SCRIPT[i][0] = e + 2.2 + .45 * q);
+            });
+        }
+
+        const hint = () => hud.textContent = `Toca ESPACIO (o la pantalla) cuando EMPIECE: ${SCRIPT[LY[k]][1].trim()}   ·   ${k}/${LY.length}`;
+
+        function begin(c) {
+            go.style.display = 'none';
+            out.style.display = 'none';
+            cal = c;
+            k = 0;
+            lastT = 0;
+            hud.style.display = c ? 'block' : 'none';
+
+            if (c) {
+                LY = SCRIPT.map((l, i) => l[1].startsWith('  " ') ? i : -1).filter(i => i >= 0);
+                SCRIPT.forEach(l => l[0] = 1e9);
+                hint();
+            }
+
+            au.currentTime = AUDIO_START;
+            setupAudio();
+            au.play();
+            cancelAnimationFrame(raf);
+            cx = null;
+            frame();
+        }
+
+        function tap() {
+            if (!cal) return;
+
+            const T = Math.max(lastT + .15, au.currentTime - AUDIO_START - LAT);
+            lastT = T;
+
+            SCRIPT[LY[k++]][0] = T;
+            derive();
+
+            if (k < LY.length) hint();
+            else finish();
+        }
+
+        function finish() {
+            cal = false;
+            au.pause();
+            hud.style.display = 'none';
+
+            SCRIPT.forEach((l, i) => {
+                if (l[0] >= 1e8) l[0] = ORIG[i];
+            });
+
+            plan();
+
+            ta.value = '[' + SCRIPT.map(l => +l[0].toFixed(2)).join(', ') + ']';
+            out.style.display = 'grid';
+        }
+
+        go.onclick = () => begin(false);
+
+        $('cal').onclick = e => {
+            e.stopPropagation();
+            begin(true);
+        };
+
+        onkeydown = e => {
+            if (e.code === 'Space' && cal) {
+                e.preventDefault();
+                tap();
+            }
+        };
+
+        onpointerdown = () => {
+            if (cal) tap();
+        };
+
+        $('cp').onclick = () => {
+            ta.select();
+            document.execCommand('copy');
+        };
+
+        $('ver').onclick = () => begin(false);
+
+        au.onended = () => {
+            if (cal) finish();
+            else {
+                go.querySelector('b').textContent = '↻ repetir';
+                go.style.display = 'grid';
+            }
+        };
+    </script>
+</body>
+</html>
