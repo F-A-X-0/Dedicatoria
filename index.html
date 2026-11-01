@@ -164,7 +164,12 @@
             box-sizing: border-box;
         }
 
+        /* Ajustes exclusivos para celulares */
         @media (max-width: 600px) {
+            #cam {
+                top: 50%;
+            }
+
             #code {
                 font-weight: 600;
             }
@@ -332,9 +337,10 @@
             });
 
             const movil = innerWidth <= 600;
+            const vertical = movil && innerHeight > innerWidth;
+            const divisor = vertical ? 24 : (movil ? 15 : 20);
             
-            const cw = Math.min(innerWidth, innerHeight * .6) / (movil ? 15 : 20) * .6;
-            const zw = k => Math.max(
+            const cw = Math.min(innerWidth, innerHeight * .6) / divisor * .6;const zw = k => Math.max(
                 .3,
                 Math.min(1.1, .8 * innerWidth / ((mc[k] + 2) * cw))
             );
@@ -427,13 +433,14 @@
 
         const fit = () => {
             const movil = innerWidth <= 600;
-
-            const divisor = movil ? 15 : 20;
-
+            const vertical = movil && innerHeight > innerWidth;
+            
+            const divisor = vertical ? 24 : (movil ? 15 : 20);
+            
             code.style.fontSize = Math.round(
                 Math.min(innerWidth, innerHeight * .6) / divisor
             ) + 'px';
-
+            
             plan();
         };
 
